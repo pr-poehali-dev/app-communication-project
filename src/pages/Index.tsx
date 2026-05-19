@@ -3,6 +3,7 @@ import Icon from "@/components/ui/icon";
 
 const AUTH_URL = "https://functions.poehali.dev/db7d005f-b0c0-456f-a491-f85ce8247fa3";
 const CHAT_URL = "https://functions.poehali.dev/edaf2059-1bc0-41c1-a668-0a0bae69faf3";
+const AVATAR_URL = "https://functions.poehali.dev/a6908e4a-96f8-4d74-a8c6-fea073d3d01b";
 
 interface AuthUser {
   id: number;
@@ -73,15 +74,19 @@ function getColor(id: number) {
   return AVATAR_COLORS[id % AVATAR_COLORS.length];
 }
 
-function Avatar({ name, id, size = "md", status }: { name: string; id: number; size?: "sm" | "md" | "lg" | "xl"; status?: string }) {
+function Avatar({ name, id, size = "md", status, avatar }: { name: string; id: number; size?: "sm" | "md" | "lg" | "xl"; status?: string; avatar?: string }) {
   const sizes = { sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-12 h-12 text-base", xl: "w-16 h-16 text-xl" };
   const dotSizes = { sm: "w-2 h-2", md: "w-2.5 h-2.5", lg: "w-3 h-3", xl: "w-3.5 h-3.5" };
   const statusColors: Record<string, string> = { online: "bg-green-400", offline: "bg-gray-500", away: "bg-yellow-400" };
   return (
     <div className="relative flex-shrink-0">
-      <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${getColor(id)} flex items-center justify-center font-semibold text-white`}>
-        {getInitials(name)}
-      </div>
+      {avatar ? (
+        <img src={avatar} alt={name} className={`${sizes[size]} rounded-full object-cover`} />
+      ) : (
+        <div className={`${sizes[size]} rounded-full bg-gradient-to-br ${getColor(id)} flex items-center justify-center font-semibold text-white`}>
+          {getInitials(name)}
+        </div>
+      )}
       {status && (
         <span className={`absolute bottom-0 right-0 ${dotSizes[size]} rounded-full border-2 border-background ${statusColors[status] ?? "bg-gray-500"}`} />
       )}
@@ -277,7 +282,7 @@ function ChatView({ me, partner, onBack }: { me: AuthUser; partner: ChatUser; on
         <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
           <Icon name="ArrowLeft" size={20} />
         </button>
-        <Avatar name={partner.name} id={partner.id} size="sm" status={partner.status} />
+        <Avatar name={partner.name} id={partner.id} size="sm" status={partner.status} avatar={partner.avatar} />
         <div className="flex-1">
           <div className="font-semibold text-sm">{partner.name}</div>
           <div className={`text-xs ${partner.status === "online" ? "text-green-400" : "text-muted-foreground"}`}>
@@ -291,7 +296,7 @@ function ChatView({ me, partner, onBack }: { me: AuthUser; partner: ChatUser; on
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-3 opacity-50">
-            <Avatar name={partner.name} id={partner.id} size="lg" />
+            <Avatar name={partner.name} id={partner.id} size="lg" avatar={partner.avatar} />
             <p className="text-sm text-muted-foreground">Начните диалог с {partner.name}</p>
           </div>
         )}
@@ -385,7 +390,7 @@ function ChatsTab({ me, onOpenChat }: { me: AuthUser; onOpenChat: (u: ChatUser) 
         )}
         {dialogs.map((d, i) => (
           <button key={d.partner_id} onClick={() => handleOpen(d.partner_id, d.partner_name, d.partner_avatar, d.partner_status)} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all text-left animate-fade-in" style={{ animationDelay: `${i * 0.04}s`, opacity: 0 }}>
-            <Avatar name={d.partner_name} id={d.partner_id} size="md" status={d.partner_status} />
+            <Avatar name={d.partner_name} id={d.partner_id} size="md" status={d.partner_status} avatar={d.partner_avatar || undefined} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-sm truncate">{d.partner_name}</span>
@@ -433,7 +438,7 @@ function ContactsTab({ me, onOpenChat, onCall }: { me: AuthUser; onOpenChat: (u:
         )}
         {users.map((u, i) => (
           <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all group animate-fade-in" style={{ animationDelay: `${i * 0.05}s`, opacity: 0 }}>
-            <Avatar name={u.name} id={u.id} size="md" status={u.status} />
+            <Avatar name={u.name} id={u.id} size="md" status={u.status} avatar={u.avatar || undefined} />
             <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onOpenChat(u)}>
               <div className="font-semibold text-sm">{u.name}</div>
               <div className={`text-xs ${u.status === "online" ? "text-green-400" : "text-muted-foreground"}`}>{u.status === "online" ? "В сети" : "Не в сети"}</div>
@@ -485,7 +490,7 @@ function SearchTab({ me, onOpenChat }: { me: AuthUser; onOpenChat: (u: ChatUser)
             <p className="text-xs text-muted-foreground px-2 py-1">Пользователи</p>
             {filtered.map((u, i) => (
               <button key={u.id} onClick={() => onOpenChat(u)} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all text-left animate-fade-in" style={{ animationDelay: `${i * 0.04}s`, opacity: 0 }}>
-                <Avatar name={u.name} id={u.id} size="md" status={u.status} />
+                <Avatar name={u.name} id={u.id} size="md" status={u.status} avatar={u.avatar || undefined} />
                 <div>
                   <div className="font-semibold text-sm">{u.name}</div>
                   <div className="text-xs text-muted-foreground">{u.email}</div>
@@ -500,13 +505,67 @@ function SearchTab({ me, onOpenChat }: { me: AuthUser; onOpenChat: (u: ChatUser)
 }
 
 /* ─── PROFILE TAB ─── */
-function ProfileTab({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
+function ProfileTab({ user, onLogout, onAvatarUpdate }: { user: AuthUser; onLogout: () => void; onAvatarUpdate: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxMb = 5;
+    if (file.size > maxMb * 1024 * 1024) {
+      setError(`Файл слишком большой (макс. ${maxMb} МБ)`);
+      return;
+    }
+
+    setError("");
+    setUploading(true);
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = (ev.target?.result as string).split(",")[1];
+      const res = await fetch(AVATAR_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-User-Id": String(user.id) },
+        body: JSON.stringify({ image: base64, ext }),
+      });
+      const data = await res.json();
+      setUploading(false);
+      if (res.ok && data.avatar) {
+        onAvatarUpdate(data.avatar);
+      } else {
+        setError(data.error || "Ошибка загрузки");
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="relative">
         <div className="h-28 bg-gradient-to-br from-purple-900/60 via-purple-800/40 to-cyan-900/60" />
         <div className="absolute -bottom-8 left-4">
-          <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getColor(user.id)} flex items-center justify-center text-xl font-bold text-white border-4 border-background`}>{getInitials(user.name)}</div>
+          <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
+            {user.avatar ? (
+              <img src={user.avatar} alt={user.name} className="w-16 h-16 rounded-full object-cover border-4 border-background" />
+            ) : (
+              <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getColor(user.id)} flex items-center justify-center text-xl font-bold text-white border-4 border-background`}>
+                {getInitials(user.name)}
+              </div>
+            )}
+            <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              {uploading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Icon name="Camera" size={18} className="text-white" />
+              )}
+            </div>
+          </div>
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile} />
         </div>
       </div>
       <div className="pt-12 px-4 pb-4">
@@ -516,6 +575,15 @@ function ProfileTab({ user, onLogout }: { user: AuthUser; onLogout: () => void }
             <p className="text-muted-foreground text-sm">{user.email}</p>
           </div>
         </div>
+        <button onClick={() => fileRef.current?.click()} disabled={uploading} className="mt-3 flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-50">
+          <Icon name="Camera" size={14} />
+          {uploading ? "Загружаем..." : user.avatar ? "Сменить фото" : "Добавить фото"}
+        </button>
+        {error && (
+          <div className="mt-2 flex items-center gap-2 text-red-400 text-xs bg-red-500/10 rounded-xl px-3 py-2 animate-fade-in">
+            <Icon name="AlertCircle" size={12} /> {error}
+          </div>
+        )}
         <div className="mt-4 space-y-2">
           <div className="flex items-center gap-3 p-3 glass rounded-2xl">
             <Icon name="Mail" fallback="Circle" size={16} className="text-purple-400" />
@@ -606,6 +674,13 @@ const Index = () => {
     setUser(null); setTab("chats"); setOpenChat(null);
   };
 
+  const handleAvatarUpdate = (avatarUrl: string) => {
+    if (!user) return;
+    const updated = { ...user, avatar: avatarUrl };
+    setUser(updated);
+    localStorage.setItem("pulse_user", JSON.stringify(updated));
+  };
+
   const openChatWith = (u: ChatUser) => { setOpenChat(u); setTab("chats"); };
 
   if (!authChecked) return null;
@@ -645,7 +720,7 @@ const Index = () => {
               {tab === "chats" && <ChatsTab me={user} onOpenChat={openChatWith} />}
               {tab === "contacts" && <ContactsTab me={user} onOpenChat={openChatWith} onCall={(u, t) => setCall({ user: u, type: t })} />}
               {tab === "search" && <SearchTab me={user} onOpenChat={openChatWith} />}
-              {tab === "profile" && <ProfileTab user={user} onLogout={handleLogout} />}
+              {tab === "profile" && <ProfileTab user={user} onLogout={handleLogout} onAvatarUpdate={handleAvatarUpdate} />}
               {tab === "settings" && <SettingsTab />}
             </div>
           )}

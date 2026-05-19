@@ -1,0 +1,21 @@
+{
+  "tests": [
+    {
+      "name": "No auth returns 401",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get avatar with auth",
+      "method": "GET",
+      "path": "/",
+      "headers": {"X-User-Id": "1"},
+      "expectedStatus": 200,
+      "expectedBody": {"avatar": "string"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
