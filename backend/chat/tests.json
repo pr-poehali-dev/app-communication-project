@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "Get users list",
+      "method": "GET",
+      "path": "/?action=users",
+      "headers": {"X-User-Id": "1"},
+      "expectedStatus": 200,
+      "expectedBody": {"users": []},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get dialogs",
+      "method": "GET",
+      "path": "/?action=dialogs",
+      "headers": {"X-User-Id": "1"},
+      "expectedStatus": 200,
+      "expectedBody": {"dialogs": []},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "No auth returns 401",
+      "method": "GET",
+      "path": "/?action=users",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
