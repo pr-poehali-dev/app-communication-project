@@ -1,5 +1,150 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
+
+const AUTH_URL = "https://functions.poehali.dev/db7d005f-b0c0-456f-a491-f85ce8247fa3";
+
+interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  avatar: string;
+  status: string;
+  token: string;
+}
+
+function getInitials(name: string) {
+  return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+}
+
+function AuthScreen({ onAuth }: { onAuth: (user: AuthUser) => void }) {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPw, setShowPw] = useState(false);
+
+  const submit = async () => {
+    setError("");
+    setLoading(true);
+    const body: Record<string, string> = { email, password };
+    if (mode === "register") body.name = name;
+
+    const res = await fetch(`${AUTH_URL}/?action=${mode}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    setLoading(false);
+
+    if (!res.ok) {
+      setError(data.error || "Ошибка. Попробуйте ещё раз.");
+      return;
+    }
+    localStorage.setItem("pulse_token", data.token);
+    localStorage.setItem("pulse_user", JSON.stringify({ ...data.user, token: data.token }));
+    onAuth({ ...data.user, token: data.token });
+  };
+
+  return (
+    <div className="h-screen w-full flex items-center justify-center bg-background overflow-hidden relative">
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-purple-900/25 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-cyan-900/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-sm mx-4 animate-fade-in">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center mb-4 glow-purple">
+            <Icon name="Zap" size={28} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-gradient">Pulse</h1>
+          <p className="text-muted-foreground text-sm mt-1">Мессенджер нового поколения</p>
+        </div>
+
+        <div className="glass-strong rounded-3xl p-6 space-y-4">
+          <div className="flex glass rounded-2xl p-1">
+            {(["login", "register"] as const).map(m => (
+              <button
+                key={m}
+                onClick={() => { setMode(m); setError(""); }}
+                className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${mode === m ? "bg-gradient-to-r from-purple-500 to-cyan-500 text-white" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {m === "login" ? "Войти" : "Регистрация"}
+              </button>
+            ))}
+          </div>
+
+          {mode === "register" && (
+            <div className="relative animate-fade-in">
+              <Icon name="User" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Ваше имя"
+                className="w-full bg-muted/50 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-1 focus:ring-purple-500 placeholder:text-muted-foreground"
+              />
+            </div>
+          )}
+
+          <div className="relative">
+            <Icon name="Mail" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="Email"
+              className="w-full bg-muted/50 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-1 focus:ring-purple-500 placeholder:text-muted-foreground"
+            />
+          </div>
+
+          <div className="relative">
+            <Icon name="Lock" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type={showPw ? "text" : "password"}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && submit()}
+              placeholder="Пароль"
+              className="w-full bg-muted/50 rounded-xl pl-10 pr-10 py-3 text-sm outline-none focus:ring-1 focus:ring-purple-500 placeholder:text-muted-foreground"
+            />
+            <button onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+              <Icon name={showPw ? "EyeOff" : "Eye"} size={16} />
+            </button>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 rounded-xl px-3 py-2 animate-fade-in">
+              <Icon name="AlertCircle" size={14} />
+              {error}
+            </div>
+          )}
+
+          <button
+            onClick={submit}
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-semibold text-sm hover:opacity-90 transition-all glow-purple disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                {mode === "login" ? "Входим..." : "Создаём аккаунт..."}
+              </>
+            ) : (
+              mode === "login" ? "Войти" : "Создать аккаунт"
+            )}
+          </button>
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground mt-4">
+          Нажимая продолжить, вы соглашаетесь с условиями использования
+        </p>
+      </div>
+    </div>
+  );
+}
 
 const CONTACTS = [
   { id: 1, name: "Алексей Морозов", status: "online", avatar: "АМ", color: "from-purple-500 to-pink-500", lastSeen: "В сети" },
@@ -302,29 +447,29 @@ function NotificationsTab() {
   );
 }
 
-function ProfileTab() {
+function ProfileTab({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
+  const initials = getInitials(user.name);
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="relative">
         <div className="h-28 bg-gradient-to-br from-purple-900/60 via-purple-800/40 to-cyan-900/60" />
         <div className="absolute -bottom-8 left-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-xl font-bold text-white border-4 border-background">ЮА</div>
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-xl font-bold text-white border-4 border-background">{initials}</div>
         </div>
       </div>
       <div className="pt-12 px-4 pb-4">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold">Юрий Алексеев</h2>
-            <p className="text-muted-foreground text-sm">@yura_dev</p>
+            <h2 className="text-xl font-bold">{user.name}</h2>
+            <p className="text-muted-foreground text-sm">{user.email}</p>
           </div>
           <button className="glass rounded-xl px-3 py-1.5 text-xs hover:bg-white/10 transition-colors flex items-center gap-1.5">
             <Icon name="Edit2" size={12} />
             Изменить
           </button>
         </div>
-        <p className="text-sm text-muted-foreground mt-3">🚀 Разработчик · Москва</p>
-        <div className="grid grid-cols-3 gap-3 mt-4">
-          {[{ label: "Контакты", value: "234" }, { label: "Чаты", value: "18" }, { label: "Группы", value: "7" }].map(stat => (
+        <div className="grid grid-cols-3 gap-3 mt-6">
+          {[{ label: "Контакты", value: "0" }, { label: "Чаты", value: "0" }, { label: "Группы", value: "0" }].map(stat => (
             <div key={stat.label} className="glass rounded-2xl p-3 text-center">
               <div className="text-xl font-bold text-gradient">{stat.value}</div>
               <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
@@ -332,13 +477,18 @@ function ProfileTab() {
           ))}
         </div>
         <div className="mt-4 space-y-2">
-          {[{ icon: "Phone", label: "+7 (999) 123-45-67" }, { icon: "Mail", label: "yura@example.com" }, { icon: "MapPin", label: "Москва, Россия" }].map(item => (
-            <div key={item.label} className="flex items-center gap-3 p-3 glass rounded-2xl">
-              <Icon name={item.icon} fallback="Circle" size={16} className="text-purple-400" />
-              <span className="text-sm">{item.label}</span>
-            </div>
-          ))}
+          <div className="flex items-center gap-3 p-3 glass rounded-2xl">
+            <Icon name="Mail" fallback="Circle" size={16} className="text-purple-400" />
+            <span className="text-sm">{user.email}</span>
+          </div>
         </div>
+        <button
+          onClick={onLogout}
+          className="w-full mt-4 glass rounded-2xl p-4 text-red-400 hover:bg-red-500/10 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+        >
+          <Icon name="LogOut" size={16} />
+          Выйти из аккаунта
+        </button>
       </div>
     </div>
   );
@@ -396,10 +546,7 @@ function SettingsTab() {
             </button>
           ))}
         </div>
-        <button className="w-full glass rounded-2xl p-4 text-red-400 hover:bg-red-500/10 transition-colors text-sm font-medium flex items-center justify-center gap-2 animate-fade-in" style={{ animationDelay: "0.4s", opacity: 0 }}>
-          <Icon name="LogOut" size={16} />
-          Выйти из аккаунта
-        </button>
+
       </div>
     </div>
   );
@@ -418,8 +565,29 @@ const Index = () => {
   const [tab, setTab] = useState<Tab>("chats");
   const [openChat, setOpenChat] = useState<Chat | null>(null);
   const [call, setCall] = useState<{ contact: Contact; type: "voice" | "video" } | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("pulse_user");
+    if (saved) {
+      try { setUser(JSON.parse(saved)); } catch (e) { console.error(e); }
+    }
+    setAuthChecked(true);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("pulse_token");
+    localStorage.removeItem("pulse_user");
+    setUser(null);
+    setTab("chats");
+    setOpenChat(null);
+  };
 
   const handleCall = (contact: Contact, type: "voice" | "video") => setCall({ contact, type });
+
+  if (!authChecked) return null;
+  if (!user) return <AuthScreen onAuth={setUser} />;
 
   return (
     <div className="h-screen w-full flex bg-background overflow-hidden">
@@ -439,6 +607,15 @@ const Index = () => {
             {item.badge && <span className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white text-[9px] flex items-center justify-center font-bold">{item.badge}</span>}
           </button>
         ))}
+        <div className="mt-auto">
+          <button
+            onClick={handleLogout}
+            className="w-10 h-10 rounded-2xl flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
+            title="Выйти"
+          >
+            <Icon name="LogOut" size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Основная область */}
@@ -452,7 +629,7 @@ const Index = () => {
               {tab === "contacts" && <ContactsTab onCall={handleCall} />}
               {tab === "search" && <SearchTab />}
               {tab === "notifications" && <NotificationsTab />}
-              {tab === "profile" && <ProfileTab />}
+              {tab === "profile" && <ProfileTab user={user} onLogout={handleLogout} />}
               {tab === "settings" && <SettingsTab />}
             </div>
           )}
